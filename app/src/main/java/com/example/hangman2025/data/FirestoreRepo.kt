@@ -1,16 +1,20 @@
 package com.example.hangman2025.data
 
+import android.content.Context
 import com.example.hangman2025.leaderboard.Score
+import com.example.hangman2025.util.FirebaseAvailability
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
-class FirestoreRepo {
-    private val db = Firebase.firestore
-    private val auth = Firebase.auth
+class FirestoreRepo(context: Context) {
+    private val enabled = FirebaseAvailability.isConfigured(context)
+    private val db by lazy { Firebase.firestore }
+    private val auth by lazy { Firebase.auth }
 
     fun saveUserProfile(username: String, email: String, onDone: () -> Unit) {
+        if (!enabled) return onDone()
         val uid = auth.currentUser?.uid ?: return onDone()
         val doc = db.collection("users").document(uid)
         val data = hashMapOf(
@@ -22,6 +26,7 @@ class FirestoreRepo {
     }
 
     fun fetchUsername(onResult: (String?) -> Unit) {
+        if (!enabled) return onResult(null)
         val uid = auth.currentUser?.uid ?: return onResult(null)
         db.collection("users").document(uid).get()
             .addOnSuccessListener { onResult(it.getString("username")) }
@@ -29,6 +34,7 @@ class FirestoreRepo {
     }
 
     fun saveScore(username: String, score: Int, word: String, onDone: () -> Unit) {
+        if (!enabled) return onDone()
         val uid = auth.currentUser?.uid
         val data = hashMapOf(
             "uid" to uid,
@@ -41,6 +47,7 @@ class FirestoreRepo {
     }
 
     fun topScores(limit: Long = 10, onResult: (List<Score>) -> Unit) {
+        if (!enabled) return onResult(emptyList())
         db.collection("scores")
             .orderBy("score", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)

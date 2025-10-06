@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.hangman2025.auth.AuthActivity
@@ -14,20 +15,24 @@ import com.example.hangman2025.game.GuessResult
 import com.example.hangman2025.game.HangmanGame
 import com.example.hangman2025.leaderboard.LeaderboardActivity
 import com.example.hangman2025.util.Prefs
+import com.example.hangman2025.util.FirebaseAvailability
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var game: HangmanGame
-    private val repo by lazy { FirestoreRepo() }
+    private val repo by lazy { FirestoreRepo(applicationContext) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (Firebase.auth.currentUser == null) {
-            startActivity(Intent(this, AuthActivity::class.java))
-            finish()
-            return
+        val hasFirebase = FirebaseAvailability.isConfigured(this)
+        if (hasFirebase) {
+            if (Firebase.auth.currentUser == null) {
+                startActivity(Intent(this, AuthActivity::class.java))
+                finish()
+                return
+            }
         }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -40,6 +45,20 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnLeaderboard.setOnClickListener {
             startActivity(Intent(this, LeaderboardActivity::class.java))
+        }
+
+        binding.btnSetName.setOnClickListener {
+            val input = EditText(this)
+            input.setText(Prefs(this).getUsername() ?: "Player")
+            AlertDialog.Builder(this)
+                .setTitle("Set Username")
+                .setView(input)
+                .setPositiveButton("Save") { _, _ ->
+                    val name = input.text.toString().trim().ifBlank { "Player" }
+                    Prefs(this).setUsername(name)
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
     }
 

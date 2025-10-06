@@ -8,18 +8,27 @@ import com.example.hangman2025.MainActivity
 import com.example.hangman2025.data.FirestoreRepo
 import com.example.hangman2025.databinding.ActivityAuthBinding
 import com.example.hangman2025.util.Prefs
+import com.example.hangman2025.util.FirebaseAvailability
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
 class AuthActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAuthBinding
-    private val auth = Firebase.auth
-    private val repo = FirestoreRepo()
+    private val auth by lazy { Firebase.auth }
+    private val repo by lazy { FirestoreRepo(applicationContext) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAuthBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        if (!FirebaseAvailability.isConfigured(this)) {
+            if (Prefs(this).getUsername().isNullOrBlank()) {
+                Prefs(this).setUsername("Player")
+            }
+            Toast.makeText(this, "Firebase not configured. Running in offline mode.", Toast.LENGTH_SHORT).show()
+            goMain(); return
+        }
 
         auth.currentUser?.let { goMain(); return }
 
